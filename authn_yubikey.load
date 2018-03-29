@@ -1,9 +1,3 @@
-# This tells apache that you really do not want any security in the
-# first place and that you will protect your login location or directory
-# by responsibly setting up an SSL connection to that location. If you
-# just use OneFactor authentication (just the key, no password) this is
-# of course unneccessary, since a stolen password (the token output)
-# cannot be reused.
-
-AuthYubiKeyRequireSecure Off
-
+LoadFile /usr/lib/x86_64-linux-gnu/libcurl.so
+LoadFile /usr/lib/x86_64-linux-gnu/libykclient.so
+LoadModule authn_yubikey_module /usr/lib/apache2/modules/mod_authn_yubikey.so
