@@ -48,4 +48,6 @@ stop:
 	$(APACHECTL) stop
 
 install_default_config:
+	@echo "copy default config"
 	cp authn_yubikey.load /etc/apache2/mods-available
+	cp authn_yubikey.conf /etc/apache2/mods-available
