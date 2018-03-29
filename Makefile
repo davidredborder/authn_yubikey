@@ -21,7 +21,7 @@ DEFS=-DYK_PACKAGE=\"mod_authn_yubikey\" -DYK_PACKAGE_VERSION=\"0.1\"
 LIBS=-lcurl -lykclient -L/usr/local/lib
 
 #   the default target
-all: local-shared-build install
+all: local-shared-build install install_default_config
 
 #   install the shared object file into Apache 
 install: install-modules-yes
@@ -47,3 +47,5 @@ restart:
 stop:
 	$(APACHECTL) stop
 
+install_default_config:
+	cp authn_yubikey.load /etc/apache2/mods-available
