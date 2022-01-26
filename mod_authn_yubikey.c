@@ -295,18 +295,21 @@ static int isUserValid(const char *user,
     // 16 Char for the keymap
     if (userPassword && strlen(userPassword) >= YUBIKEY_KEYMAP_LENGTH) {
 	// possible keymap
+	ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_DEBUG, 0, r, LOG_PREFIX "Possible Keymap in password.");
+
 	if (passwordLength == YUBIKEY_KEYMAP_LENGTH) 
 		userPassword_trans = NULL;
 	else
 		userPassword_trans = apr_pstrndup(r->pool, password, passwordLength - YUBIKEY_KEYMAP_LENGTH);
+
 	keymap = apr_pstrndup(r->pool, &password[passwordLength - YUBIKEY_KEYMAP_LENGTH], (apr_size_t) YUBIKEY_KEYMAP_LENGTH);
 
 	ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_DEBUG, 0, r,
-		  LOG_PREFIX "The length of the entered password is: %d", passwordLength - YUBIKEY_KEYMAP_LENGTH);
+		  LOG_PREFIX "The length of the password without keymap is: %d", passwordLength - YUBIKEY_KEYMAP_LENGTH);
 	ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_DEBUG, 0, r,
 		  LOG_PREFIX "The entered keymap is: %s", keymap);
 	ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_DEBUG, 0, r,
-		  LOG_PREFIX "The entered password is: %s", userPassword_trans);
+		  LOG_PREFIX "The translated password is: %s", userPassword_trans);
     }
 
     /* Now move the password pointer forward the number of calculatd characters for the userPassword,
@@ -346,10 +349,14 @@ static int isUserValid(const char *user,
 			LOG_PREFIX "Could find the ID: %s", w);
 
 
-	  if (!strncmp(yubiKeyId, w, 12))
+	  // if the yubiKeyId is == password and we do not have a keymap, the password was not translated
+	  if (!strncmp(yubiKeyId, w, 12) && !keymap) {
+		  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_DEBUG, 0, r, LOG_PREFIX "The ID was found untranslated.");
 		  translated = FALSE;
-	  else
+	  } else {
+		  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_DEBUG, 0, r, LOG_PREFIX "The ID was found translated.");
 		  translated = TRUE;
+	  }
 
 
 	  /* remember, since we are working with the passwd
@@ -362,7 +369,7 @@ static int isUserValid(const char *user,
 
 	  if (translated) {
 		  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_DEBUG, 0, r,
-				  LOG_PREFIX "The looked up userPassword is: %s", userPassword_trans);
+				  LOG_PREFIX "The looked up translated userPassword is: %s", userPassword_trans);
 		  /* this results in username:password as it should be entered in the install dialog */
 		  if (userPassword_trans) {
 			  unPw = apr_pstrcat(r->pool, user, ":", userPassword_trans, NULL);
