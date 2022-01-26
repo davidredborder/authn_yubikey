@@ -52,12 +52,12 @@ It will translate if the yubikey sends a Keymap.
 the file contains either
 
 ```ini
- <yubikey_id>:<sha1(username)> 
+<yubikey_id>:<sha1(username)> 
 ```
 
 or if userpassword is set:
 
 ```ini
-  <yubikey_id>:<sha1(username:password)> 
+<yubikey_id>:<sha1(username:password)> 
 ```
 
