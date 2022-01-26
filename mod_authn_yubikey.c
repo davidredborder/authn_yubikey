@@ -246,7 +246,6 @@ static int isUserValid(const char *user,
     char *keymap = NULL;
     apr_size_t passwordLength = 0;
     char *realName = NULL;
-    int userWasFound = STATUS_NOT_FOUND;
 
     int translated = FALSE;
     /* This is TRUE when we store a combination of yubikeyId:username:password,
@@ -260,7 +259,7 @@ static int isUserValid(const char *user,
         ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
                       LOG_PREFIX "Could not open AuthYkUserFile file: %s", 
 		      cfg->userAuthDbFilename);
-        return FALSE;
+        return STATUS_NOT_FOUND;
     }
 
     /* Do length check of at least the password part,
@@ -271,7 +270,7 @@ static int isUserValid(const char *user,
       ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
 		    LOG_PREFIX "The entered password cannot be a yubikey generated token");
       ap_cfg_closefile(f);
-      return FALSE;
+      return STATUS_NOT_FOUND;
     }
 
     /* If the password is bigger then 44 characters, then we have an additional password
@@ -396,14 +395,14 @@ static int isUserValid(const char *user,
 	  if (status == APR_SUCCESS) {
 	    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_DEBUG, 0, r,
 			    LOG_PREFIX "Could map ID %s to User: %s", w, user);
-	    userWasFound = translated?STATUS_FOUND_TRANSLATE:STATUS_FOUND;
-	    break;
+	    ap_cfg_closefile(f);
+	    return translated?STATUS_FOUND_TRANSLATE:STATUS_FOUND;
 	  }   
         }	
     }
     ap_cfg_closefile(f);
 
-    return userWasFound;
+    return STATUS_NOT_FOUND;
 }
 
 /* This does some initial checking, like if we're running on a SSL line or not */
@@ -448,7 +447,7 @@ static authn_status authn_check_otp(request_rec *r, const char *user,
     apr_size_t passwordLength = 0;
     apr_time_t lookedUpDate = 0;
 
-    int translated = STATUS_FOUND;
+    int user_status = STATUS_FOUND;
 
 
 
@@ -469,9 +468,9 @@ static authn_status authn_check_otp(request_rec *r, const char *user,
      * Ideally we can fill that with the htpasswd utility
      * NOTE: enter full password here
      */
-    translated = isUserValid(user, password, cfg, r);
+    user_status = isUserValid(user, password, cfg, r);
 
-    if (translated == STATUS_NOT_FOUND) {
+    if (user_status == STATUS_NOT_FOUND) {
       return AUTH_DENIED;
     }
 
@@ -558,12 +557,22 @@ static authn_status authn_check_otp(request_rec *r, const char *user,
 	}
 
 	/* We could not lookup the password, verify the sent password */
-	if (translated) {
+	if (user_status == STATUS_FOUND_TRANSLATE) {
 		char* keymap = apr_pstrndup(r->pool, &password[passwordLength - YUBIKEY_KEYMAP_LENGTH], (apr_size_t) YUBIKEY_KEYMAP_LENGTH);
 		char* otp = translateString(&password[passwordLength], keymap, YUBIKEY_TOKEN_LENGTH, r);
 
+		ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_DEBUG, 0, r,
+			      LOG_PREFIX "Keymap: %s",
+			      keymap);
+		ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_DEBUG, 0, r,
+			      LOG_PREFIX "Request Yubikey Server with this translated password: %s",
+			      otp);
+
 		ret = ykclient_request(ykc, otp);
 	} else {
+		ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_DEBUG, 0, r,
+			      LOG_PREFIX "Request Yubikey Server with this password: %s",
+			      &password[passwordLength]);
 		ret = ykclient_request(ykc, &password[passwordLength]);
 	}
 	ykclient_done(&ykc);
