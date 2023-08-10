@@ -7,7 +7,7 @@ It will translate if the yubikey sends a Keymap.
 
 ## Requirements
 
-Make sure following packages are installed to compile : libykclient-dev apache2-dev
+Make sure following packages are installed to compile : libykclient-dev apache2-dev libykclient-dev libcurl
 
 ## Apache Config
 
