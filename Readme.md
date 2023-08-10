@@ -5,6 +5,10 @@ Password set, which is needed before the OTP. (2FA)
 
 It will translate if the yubikey sends a Keymap.
 
+## Requirements
+
+Make sure following packages are installed to compile : libykclient-dev apache2-dev
+
 ## Apache Config
 
 ```apacheconf
